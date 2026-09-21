@@ -18,7 +18,7 @@ const keys={}; let running=false, paused=false, cctvOpen=false, flashlightOn=tru
 let yawVelocity=0, pitchVelocity=0, eventTimer=25, generatorHealth=1, generatorFixes=0, camerasChecked=0, eventsSeen=0, batteriesUsed=0, entityState='roam';
 const velocity=new THREE.Vector3(), direction=new THREE.Vector3();
 const colliders=[], interactables=[], batteries=[], doors=[], docs=[], camPoints=[], lights=[];
-let entity, entityTarget=new THREE.Vector3(), entityCooldown=0, lastMoveNoise=0, generatorStep=0;
+let entity=null, entityTarget=new THREE.Vector3(), entityCooldown=0, lastMoveNoise=0, generatorStep=0;
 let audioCtx=null, masterGain=null, sfxGain=null;
 
 function audioInit(){if(audioCtx)return;audioCtx=new AudioContext();masterGain=audioCtx.createGain();sfxGain=audioCtx.createGain();masterGain.gain.value=save.master;sfxGain.gain.value=save.sfx;sfxGain.connect(masterGain);masterGain.connect(audioCtx.destination)}
