@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIGHT SHIFT — Blackwood Facility</title>
+<meta name="description" content="NIGHT SHIFT — survive the Blackwood Facility until 6:00 AM.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game"></div>
+<div id="menu" class="screen">
+  <div class="menu-panel">
+    <div class="eyebrow">BLACKWOOD FACILITY · NIGHT SECURITY</div>
+    <h1>NIGHT SHIFT</h1>
+    <p class="tagline">Some nights are better left unfinished.</p>
+    <div class="menu-buttons">
+      <button id="newGame">NEW GAME</button>
+      <button id="continueGame">CONTINUE</button>
+      <button id="settingsBtn">SETTINGS</button>
+      <button id="howBtn">HOW TO PLAY</button>
+    </div>
+    <div id="menuHint"></div>
+  </div>
+</div>
+<div id="hud" class="hidden">
+  <div class="hud-top"><span id="clock">11:00 PM</span><span id="nightLabel">NIGHT 1</span></div>
+  <div class="hud-bottom">
+    <span id="power">POWER 100%</span>
+    <span id="battery">FLASHLIGHT: 100%</span>
+  </div>
+  <div id="prompt"></div>
+  <div id="message"></div>
+</div>
+<div id="crosshair" class="hidden">+</div>
+<div id="cctv" class="hidden">
+  <div class="cctv-head"><b>BLACKWOOD SECURITY NETWORK</b><span id="camTitle">CAM 01 — RECEPTION</span></div>
+  <div id="cctvView"></div>
+  <div class="cctv-controls">
+    <button data-cam="0">01 RECEPTION</button><button data-cam="1">02 CORRIDOR</button><button data-cam="2">03 OFFICES</button><button data-cam="3">04 ARCHIVE</button>
+    <button data-cam="4">05 BASEMENT</button><button data-cam="5">06 GENERATOR</button><button data-cam="6">07 STORAGE</button><button data-cam="7">08 STAIRWELL</button>
+  </div>
+  <p>Press C or ESC to close CCTV.</p>
+</div>
+<div id="pause" class="screen hidden"><div class="modal"><h2>PAUSED</h2><button id="resume">RESUME</button><button id="pauseSettings">SETTINGS</button><button id="quit">QUIT TO MENU</button></div></div>
+<div id="modal" class="screen hidden"><div class="modal"><h2 id="modalTitle"></h2><div id="modalBody"></div><div id="modalButtons"></div></div></div>
+<div id="settings" class="screen hidden"><div class="modal settings"><h2>SETTINGS</h2>
+<label>Master volume <input id="master" type="range" min="0" max="1" step=".05"></label>
+<label>SFX volume <input id="sfx" type="range" min="0" max="1" step=".05"></label>
+<label>Mouse sensitivity <input id="sens" type="range" min=".3" max="2" step=".1"></label>
+<label>Graphics <select id="quality"><option value="low">LOW</option><option value="medium">MEDIUM</option><option value="high">HIGH</option></select></label>
+<label><input id="shadows" type="checkbox"> Shadows</label>
+<label><input id="shake" type="checkbox"> Camera shake</label>
+<button id="closeSettings">DONE</button></div></div>
+<div id="loading"><div>NIGHT SHIFT</div><span>BLACKWOOD FACILITY</span></div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
