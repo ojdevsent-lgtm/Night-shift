@@ -18,7 +18,7 @@ const keys={}; let running=false, paused=false, cctvOpen=false, flashlightOn=tru
 let yawVelocity=0, pitchVelocity=0, eventTimer=25, generatorHealth=1, generatorFixes=0, camerasChecked=0, eventsSeen=0, batteriesUsed=0, entityState='roam';
 const velocity=new THREE.Vector3(), direction=new THREE.Vector3();
 const colliders=[], interactables=[], batteries=[], doors=[], docs=[], camPoints=[], lights=[];
-let entity, entityTarget=new THREE.Vector3(), entityCooldown=0, lastMoveNoise=0;
+let entity, entityTarget=new THREE.Vector3(), entityCooldown=0, lastMoveNoise=0, generatorStep=0;
 let audioCtx=null, masterGain=null, sfxGain=null;
 
 function audioInit(){if(audioCtx)return;audioCtx=new AudioContext();masterGain=audioCtx.createGain();sfxGain=audioCtx.createGain();masterGain.gain.value=save.master;sfxGain.gain.value=save.sfx;sfxGain.connect(masterGain);masterGain.connect(audioCtx.destination)}
@@ -49,8 +49,8 @@ function buildFacility(){
   for(const p of [[-19,-13],[19,-13],[-19,13],[19,13]])light(p[0],2.5,p[1],0xff3328,.45,7);
   door(-2,-8,0,'Security Office');door(2,8,Math.PI/2,'Basement Door');door(-9,0,Math.PI/2,'Reception Door');door(9,0,Math.PI/2,'Archive Door');
   // furniture
-  box('desk',-14,.55,-11,4,1,1.5,M.wood,true);box('monitor',-14,1.45,-11,.9,.6,.15,M.black);box('radio',-12.8,1.2,-11,.45,.25,.3,M.metal);
-  box('generator',15,1.1,11,2.4,2,1.4,M.metal,true);light(15,2.3,11,0xff7d44,.5,5);
+  box('desk',-14,.55,-11,4,1,1.5,M.wood,true);const monitor=box('monitor',-14,1.45,-11,.9,.6,.15,M.black);monitor.userData.interact=()=>openCCTV();interactables.push({obj:monitor,range:2.4,text:'[E] Use security monitor',action:monitor.userData.interact});const radio=box('radio',-12.8,1.2,-11,.45,.25,.3,M.metal);radio.userData.interact=()=>{noise(.55,.03);msg(['RADIO: All clear on the east wing.','RADIO: …there is someone on Camera 06.','RADIO: Do not answer the phone.'][Math.floor(Math.random()*3)],5000)};interactables.push({obj:radio,range:1.8,text:'[E] Use radio',action:radio.userData.interact});const phone=box('phone',-15.2,1.2,-11,.32,.12,.5,M.black);phone.userData.interact=()=>{tone(430,.15);showModal('INCOMING CALL','<p>“Are you still inside?”</p><p class="small">The line goes dead before you can answer.</p>',[['CLOSE',closeModal]])};interactables.push({obj:phone,range:1.8,text:'[E] Answer phone',action:phone.userData.interact});
+  const generator=box('generator',15,1.1,11,2.4,2,1.4,M.metal,true);generator.userData.interact=()=>{if(generatorHealth>=1){msg('Generator is stable.');return}generatorStep++;tone(160+generatorStep*70,.1,'square');if(generatorStep<3)msg('Electrical repair: switch '+generatorStep+'/3.');else{generatorHealth=1;generatorStep=0;generatorFixes++;msg('Generator stabilized. Power is returning.',4500);tone(520,.3)}};interactables.push({obj:generator,range:2.5,text:'[E] Repair generator',action:generator.userData.interact});light(15,2.3,11,0xff7d44,.5,5);
   for(let i=0;i<8;i++)box('crate',-15+(i%4)*2,.7,10+Math.floor(i/4)*2,1.2,1.4,1.2,M.wood,true);
   // server racks
   for(let i=0;i<5;i++){box('server',11+i*1.3,1.2,-11,1,2.2,1.2,M.metal,true);light(11+i*1.3,1.8,-10.2,0x3377aa,.25,2)}
@@ -116,7 +116,7 @@ function randomEvent(){
   else if(r<.84){generatorHealth=Math.max(0,generatorHealth-.25);msg('GENERATOR FAULT — basement repair required.');}
   else {entity.visible=true;entity.position.set(...nearestOpenTarget(),0);msg('CAMERA MOTION ALERT.');tone(180,.4,'sawtooth',.04)}
 }
-function updatePower(dt){power=Math.max(0,power-dt*(.0025+(cctvOpen?.006:0)));if(power<25){lights.forEach(l=>l.intensity=l.userData.base*(.35+power/100));}if(power<=0){lights.forEach(l=>l.intensity=0);if(Math.random()<dt*.1)msg('TOTAL POWER LOSS.')}if(generatorHealth<=0){power=Math.max(0,power-dt*.02)}}
+function updatePower(dt){power=Math.max(0,power-dt*(.0025+night*.00045+(cctvOpen?.006:0)));if(power<25){lights.forEach(l=>l.intensity=l.userData.base*(.35+power/100));}if(power<=0){lights.forEach(l=>l.intensity=0);if(Math.random()<dt*.1)msg('TOTAL POWER LOSS.')}if(generatorHealth<=0){power=Math.max(0,power-dt*.02)}}
 function updateFlashlight(dt){if(flashlightOn){battery=Math.max(0,battery-dt*.45);if(battery<=0)flashlightOn=false;}}
 function interact(){
   let best=null,bd=Infinity;
@@ -131,16 +131,16 @@ let flashlightLight;
 function setupFlashlight(){flashlightLight=new THREE.SpotLight(0xeef3ed,2.7,16,Math.PI/7,.45,1.4);flashlightLight.position.set(0,0,0);flashlightLight.target.position.set(0,0,-1);camera.add(flashlightLight);camera.add(flashlightLight.target)}
 function updateLight(){flashlightLight.visible=flashlightOn;flashlightLight.intensity=battery<20?1.2:2.7;flashlightLight.position.set(0,.05,0)}
 function openCCTV(){
-  if(!running)return;cctvOpen=!cctvOpen;$('cctv').classList.toggle('hidden',!cctvOpen);controls.unlock();if(cctvOpen){camerasChecked++;renderCCTV(0)}
+  if(!running)return;cctvOpen=!cctvOpen;$('cctv').classList.toggle('hidden',!cctvOpen);if(cctvOpen){controls.unlock();camerasChecked++;renderCCTV(0)}else{$('game').appendChild(renderer.domElement);controls.lock()}
 }
 function renderCCTV(i){
   const cp=camPoints[i];if(!cp)return;$('camTitle').textContent=['CAM 01 — RECEPTION','CAM 02 — CORRIDOR','CAM 03 — OFFICES','CAM 04 — ARCHIVE','CAM 05 — BASEMENT','CAM 06 — GENERATOR','CAM 07 — STORAGE','CAM 08 — STAIRWELL'][i];
   const v=new THREE.Scene();v.background=new THREE.Color(0x030505);const c=new THREE.PerspectiveCamera(65,1.8,.1,100);c.position.copy(cp.position);c.quaternion.copy(cp.quaternion);const oldBg=scene.background;scene.background=v.background;
   const oldCam=camera.position.clone();const oldQ=camera.quaternion.clone();camera.position.copy(cp.position);camera.quaternion.copy(cp.quaternion);renderer.setRenderTarget(null);renderer.render(scene,camera);camera.position.copy(oldCam);camera.quaternion.copy(oldQ);scene.background=oldBg;
-  $('cctvView').innerHTML='';$('cctvView').appendChild(renderer.domElement);
+  if(cctvOpen){$('cctvView').innerHTML='';$('cctvView').appendChild(renderer.domElement)}
 }
 function startNight(n=1){
-  night=n;running=true;paused=false;cctvOpen=false;elapsed=0;power=Math.max(55,100-(n-1)*8);battery=100;generatorHealth=1;generatorFixes=0;eventsSeen=0;camerasChecked=0;batteriesUsed=0;entityCooldown=4;entity.visible=false;
+  night=n;running=true;paused=false;cctvOpen=false;elapsed=0;power=Math.max(55,100-(n-1)*8);battery=100;generatorHealth=1;generatorFixes=0;eventsSeen=0;camerasChecked=0;batteriesUsed=0;entityCooldown=Math.max(2,12-night);entity.visible=false;eventTimer=Math.max(8,30-night*2);
   camera.position.set(-14,1.65,-11);camera.rotation.set(0,0,0);controls.lock();$('menu').classList.add('hidden');$('pause').classList.add('hidden');$('modal').classList.add('hidden');$('hud').classList.remove('hidden');$('crosshair').classList.remove('hidden');msg('SHIFT START — 11:00 PM. Check the facility and keep the power alive.');audioInit();tone(180,.2)
 }
 function endNight(){running=false;controls.unlock();save.completed=Math.max(save.completed,night);save.night=Math.min(7,night+1);persist();showModal('SHIFT COMPLETE','<p class="good">06:00 AM</p><p>The lights return. Whatever was moving through Blackwood is gone.</p>'+stats(),[['CONTINUE',()=>{closeModal();startNight(Math.min(7,night+1))}],['MENU',quit]])}
@@ -167,7 +167,7 @@ function tick(){
   requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.05);
   if(running&&!paused&&!cctvOpen){
     doMove(dt);updateEntity(dt);updatePower(dt);updateFlashlight(dt);updateLight();eventTimer-=dt;
-    if(eventTimer<=0){eventTimer=22+Math.random()*35;randomEvent()}
+    if(eventTimer<=0){eventTimer=Math.max(10,26-night*3)+Math.random()*28;randomEvent()}
     elapsed+=dt;const shiftMinutes=420*(elapsed/420);const total=23*60+shiftMinutes;const mins=Math.floor(total%1440),hh=Math.floor(mins/60),mm=mins%60;const h12=hh%12||12;const ampm=hh<12?'AM':'PM';$('clock').textContent=String(h12).padStart(2,'0')+':'+String(mm).padStart(2,'0')+' '+ampm;
     $('power').textContent='POWER '+Math.round(power)+'%';$('battery').textContent='FLASHLIGHT: '+Math.round(battery)+'%';updatePrompt();
     if(elapsed>=420)endNight();
