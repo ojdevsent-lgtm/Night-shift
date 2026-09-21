@@ -84,14 +84,14 @@ function updateEntity(dt){
   if(entityCooldown<=0){
     entityCooldown=8+Math.random()*14;
     const roll=Math.random();
-    if(dist<7 && roll<.32) entityState='hunt';
+    if(dist<9 && roll<(.24+night*.025)) entityState='hunt';
     else if(roll<.45) entityState='observe';
     else if(roll<.75) entityState='roam';
     else entityState='retreat';
     if(entityState==='observe'){const p=camera.position.clone();p.y=0;entityTarget.copy(p);msg('Something moves somewhere nearby.')}
     else {const t=nearestOpenTarget();entityTarget.set(t[0],0,t[1])}
   }
-  let speed=entityState==='hunt'?.95:entityState==='roam'?.38:.22;
+  let speed=entityState==='hunt'?(0.8+night*.08):entityState==='roam'?.38:.22;
   if(playerLight&&entityState==='hunt'&&dist<12) speed*=.35;
   if(entityState==='retreat')speed=.7;
   const d=entityTarget.clone().sub(entity.position);d.y=0;
@@ -114,9 +114,9 @@ function randomEvent(){
   else if(r<.62){msg('CCTV signal interference detected.');noise(.4,.03)}
   else if(r<.73){msg('A metal object falls somewhere nearby.');tone(120,.12,'square');setTimeout(()=>noise(.2,.03),150)}
   else if(r<.84){generatorHealth=Math.max(0,generatorHealth-.25);msg('GENERATOR FAULT — basement repair required.');}
-  else {entity.visible=true;entity.position.set(...nearestOpenTarget(),0);msg('CAMERA MOTION ALERT.');tone(180,.4,'sawtooth',.04)}
+  else {const t=nearestOpenTarget();entity.visible=true;entity.position.set(t[0],0,t[1]);msg('CAMERA MOTION ALERT.');tone(180,.4,'sawtooth',.04)}
 }
-function updatePower(dt){power=Math.max(0,power-dt*(.0025+night*.00045+(cctvOpen?.006:0)));if(power<25){lights.forEach(l=>l.intensity=l.userData.base*(.35+power/100));}if(power<=0){lights.forEach(l=>l.intensity=0);if(Math.random()<dt*.1)msg('TOTAL POWER LOSS.')}if(generatorHealth<=0){power=Math.max(0,power-dt*.02)}}
+function updatePower(dt){power=Math.max(0,power-dt*(.105+night*.018+(cctvOpen?.045:0)));if(power<25){lights.forEach(l=>l.intensity=l.userData.base*(.35+power/100));}if(power<=0){lights.forEach(l=>l.intensity=0);if(Math.random()<dt*.1)msg('TOTAL POWER LOSS.')}if(generatorHealth<=0){power=Math.max(0,power-dt*.09);if(Math.random()<dt*.035)msg('The generator is failing. Find it in the basement.')}}
 function updateFlashlight(dt){if(flashlightOn){battery=Math.max(0,battery-dt*.45);if(battery<=0)flashlightOn=false;}}
 function interact(){
   let best=null,bd=Infinity;
@@ -131,16 +131,16 @@ let flashlightLight;
 function setupFlashlight(){flashlightLight=new THREE.SpotLight(0xeef3ed,2.7,16,Math.PI/7,.45,1.4);flashlightLight.position.set(0,0,0);flashlightLight.target.position.set(0,0,-1);camera.add(flashlightLight);camera.add(flashlightLight.target)}
 function updateLight(){flashlightLight.visible=flashlightOn;flashlightLight.intensity=battery<20?1.2:2.7;flashlightLight.position.set(0,.05,0)}
 function openCCTV(){
-  if(!running)return;cctvOpen=!cctvOpen;$('cctv').classList.toggle('hidden',!cctvOpen);if(cctvOpen){controls.unlock();camerasChecked++;renderCCTV(0)}else{$('game').appendChild(renderer.domElement);controls.lock()}
+  if(!running)return;cctvOpen=!cctvOpen;$('cctv').classList.toggle('hidden',!cctvOpen);if(cctvOpen){controls.unlock();camerasChecked++;power=Math.max(0,power-1.5);renderCCTV(0)}else{$('game').appendChild(renderer.domElement);controls.lock()}
 }
 function renderCCTV(i){
   const cp=camPoints[i];if(!cp)return;$('camTitle').textContent=['CAM 01 — RECEPTION','CAM 02 — CORRIDOR','CAM 03 — OFFICES','CAM 04 — ARCHIVE','CAM 05 — BASEMENT','CAM 06 — GENERATOR','CAM 07 — STORAGE','CAM 08 — STAIRWELL'][i];
   const v=new THREE.Scene();v.background=new THREE.Color(0x030505);const c=new THREE.PerspectiveCamera(65,1.8,.1,100);c.position.copy(cp.position);c.quaternion.copy(cp.quaternion);const oldBg=scene.background;scene.background=v.background;
   const oldCam=camera.position.clone();const oldQ=camera.quaternion.clone();camera.position.copy(cp.position);camera.quaternion.copy(cp.quaternion);renderer.setRenderTarget(null);renderer.render(scene,camera);camera.position.copy(oldCam);camera.quaternion.copy(oldQ);scene.background=oldBg;
-  if(cctvOpen){$('cctvView').innerHTML='';$('cctvView').appendChild(renderer.domElement)}
+  if(cctvOpen){$('cctvView').innerHTML='';$('cctvView').appendChild(renderer.domElement);if(night>=2&&Math.random()<.28){const t=nearestOpenTarget();msg('CAMERA '+String(i+1).padStart(2,'0')+' shows movement.');entity.visible=true;entity.position.set(t[0],0,t[1])}}
 }
 function startNight(n=1){
-  night=n;running=true;paused=false;cctvOpen=false;elapsed=0;power=Math.max(55,100-(n-1)*8);battery=100;generatorHealth=1;generatorFixes=0;eventsSeen=0;camerasChecked=0;batteriesUsed=0;entityCooldown=Math.max(2,12-night);entity.visible=false;eventTimer=Math.max(8,30-night*2);
+  night=n;running=true;paused=false;cctvOpen=false;elapsed=0;power=Math.max(55,100-(n-1)*8);battery=100;generatorHealth=1;generatorFixes=0;eventsSeen=0;camerasChecked=0;batteriesUsed=0;entityCooldown=Math.max(2,12-night);entity.visible=false;eventTimer=Math.max(7,25-night*2);
   camera.position.set(-14,1.65,-11);camera.rotation.set(0,0,0);controls.lock();$('menu').classList.add('hidden');$('pause').classList.add('hidden');$('modal').classList.add('hidden');$('hud').classList.remove('hidden');$('crosshair').classList.remove('hidden');msg('SHIFT START — 11:00 PM. Check the facility and keep the power alive.');audioInit();tone(180,.2)
 }
 function endNight(){running=false;controls.unlock();save.completed=Math.max(save.completed,night);save.night=Math.min(7,night+1);persist();showModal('SHIFT COMPLETE','<p class="good">06:00 AM</p><p>The lights return. Whatever was moving through Blackwood is gone.</p>'+stats(),[['CONTINUE',()=>{closeModal();startNight(Math.min(7,night+1))}],['MENU',quit]])}
