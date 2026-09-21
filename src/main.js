@@ -123,8 +123,7 @@ function interact(){
   for(const i of interactables){if(!i.obj.visible)continue;const d=i.obj.position.distanceTo(camera.position);if(d<i.range&&d<bd){bd=d;best=i}}
   if(best){best.action();return true}return false
 }
-function doMove(dt){
-  direction.set(Number(keys.KeyD)-Number(keys.KeyA),0,Number(keys.KeyS)-Number(keys.KeyW));if(direction.lengthSq()>0){direction.normalize();const speed=keys.ShiftLeft||keys.ShiftRight?4.3:2.7;velocity.x=direction.x*speed;velocity.z=direction.z*speed;const old=camera.position.clone();controls.moveRight(velocity.x*dt);controls.moveForward(-velocity.z*dt);if(camera.position.x<-20||camera.position.x>20||camera.position.z<-15||camera.position.z>15){camera.position.copy(old)}lastMoveNoise=1}else{velocity.multiplyScalar(.8);lastMoveNoise=0}}
+function doMove(dt){direction.set(Number(keys.KeyD)-Number(keys.KeyA),0,Number(keys.KeyS)-Number(keys.KeyW));if(direction.lengthSq()>0){direction.normalize();const speed=keys.ShiftLeft||keys.ShiftRight?4.3:2.7;velocity.x=direction.x*speed;velocity.z=direction.z*speed;const old=camera.position.clone();controls.moveRight(velocity.x*dt);controls.moveForward(-velocity.z*dt);if(camera.position.x<-20||camera.position.x>20||camera.position.z<-15||camera.position.z>15){camera.position.copy(old)}lastMoveNoise=1}else{velocity.multiplyScalar(.8);lastMoveNoise=0}}
 function updatePrompt(){let best=null,bd=Infinity;for(const i of interactables){if(!i.obj.visible)continue;const d=i.obj.position.distanceTo(camera.position);if(d<i.range&&d<bd){bd=d;best=i}}$('prompt').textContent=best?best.text:''}
 function flashlight(){flashlightOn=!flashlightOn&&battery>0?true:false;if(!flashlightOn&&battery>0)flashlightOn=true}
 let flashlightLight;
